@@ -1,0 +1,100 @@
+import os
+os.environ["KIVY_NO_CONSOLELOG"] = "1"
+os.environ["KIVY_WINDOW"] = "sdl2"
+
+from kivy.lang import Builder
+from kivy.properties import StringProperty, NumericProperty
+from kivymd.app import MDApp
+from kivymd.uix.list import OneLineAvatarIconListItem
+from kivymd.uix.dialog import MDDialog
+
+KV = '''
+BoxLayout:
+    orientation: "vertical"
+
+    MDToolbar:
+        title: "Lista de Itens"
+        md_bg_color: app.theme_cls.primary_color
+        specific_text_color: 1, 1, 1, 1
+
+    ScrollView:
+        MDList:
+            id: item_list
+
+    BoxLayout:
+        size_hint_y: None
+        height: "56dp"
+        padding: "10dp"
+        spacing: "10dp"
+
+        MDTextField:
+            id: item_name
+            hint_text: "Nome do item"
+            mode: "rectangle"
+            multiline: False
+
+        MDRaisedButton:
+            text: "Adicionar"
+            on_release: app.add_item()
+'''
+
+
+class ListItemWithCounter(OneLineAvatarIconListItem):
+    item_name = StringProperty()
+    count = NumericProperty(1)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def increment(self):
+        self.count += 1
+        self.refresh_text()
+
+    def decrement(self):
+        if self.count > 1:
+            self.count -= 1
+        self.refresh_text()
+
+    def refresh_text(self):
+        self.text = f"{self.item_name} - Quantidade: {self.count}"
+
+
+class ItemListApp(MDApp):
+    dialog = None
+
+    def build(self):
+        self.theme_cls.primary_palette = "Blue"
+        return Builder.load_string(KV)
+
+    def add_item(self):
+        item_name = self.root.ids.item_name.text.strip()
+
+        if not item_name:
+            self.show_dialog("Erro", "Por favor, insira um nome para o item.")
+            return
+
+        new_item = ListItemWithCounter(item_name=item_name)
+        new_item.text = f"{item_name} - Quantidade: {new_item.count}"
+
+        self.root.ids.item_list.add_widget(new_item)
+        self.root.ids.item_name.text = ""
+
+    def show_dialog(self, title, text):
+        if not self.dialog:
+            self.dialog = MDDialog(
+                title=title,
+                text=text,
+                buttons=[
+                    MDRaisedButton(
+                        text="OK",
+                        on_release=lambda x: self.dialog.dismiss()
+                    )
+                ],
+            )
+        self.dialog.title = title
+        self.dialog.text = text
+        self.dialog.open()
+
+
+if __name__ == "__main__":
+    ItemListApp().run()
